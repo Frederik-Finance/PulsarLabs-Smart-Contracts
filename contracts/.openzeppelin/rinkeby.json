@@ -1,0 +1,375 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xaD929810A3Ba7331f9d8223CAc11695539f7c767",
+    "txHash": "0xe706d37523ffe326adc6aedaecb5d3b9402be0075101b26bee4c00640a02a6fd"
+  },
+  "proxies": [
+    {
+      "address": "0x3ae89241Ca7EEDadEaE390c894fB565A91699fad",
+      "txHash": "0xd446f9602ec3185fdef954b1eae737b3558372d753d22b53060ff3b33f186039",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "d3f895a878cf0c7c2449dc3925f3d973e9ee83e57a9234c5a08b3729d4f3e1ca": {
+      "address": "0xa9244A2D0F5723C7eA35D2A88f357262Fc117b8F",
+      "txHash": "0x74f798f720ba7941969244a12047758c9c931920563bd1138e0af22f7f05a9e5",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:87"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:74"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "ratio",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarReferral.sol:54"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "maxRankId",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarReferral.sol:55"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "period",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarReferral.sol:56"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "rank",
+            "type": "t_mapping(t_uint256,t_struct(Rank)14570_storage)",
+            "src": "project:/contracts/PulsarReferral.sol:61"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "profiles",
+            "type": "t_mapping(t_address,t_struct(Profile)14584_storage)",
+            "src": "project:/contracts/PulsarReferral.sol:62"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "points",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Points)14577_storage))",
+            "src": "project:/contracts/PulsarReferral.sol:63"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "unlocked",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_bool))",
+            "src": "project:/contracts/PulsarReferral.sol:69"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "referralCode",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "src": "project:/contracts/PulsarReferral.sol:77"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "referralCodeExists",
+            "type": "t_mapping(t_bytes32,t_bool)",
+            "src": "project:/contracts/PulsarReferral.sol:78"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "referralInUse",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_bytes32))",
+            "src": "project:/contracts/PulsarReferral.sol:85"
+          },
+          {
+            "contract": "PulsarReferral",
+            "label": "tree",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_array(t_address)dyn_storage))",
+            "src": "project:/contracts/PulsarReferral.sol:87"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "PSR",
+            "type": "t_address",
+            "src": "project:/contracts/PulsarRouter.sol:123"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "PulsarReferralCoin",
+            "type": "t_address",
+            "src": "project:/contracts/PulsarRouter.sol:124"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "WBNB",
+            "type": "t_address",
+            "src": "project:/contracts/PulsarRouter.sol:125"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "BUSD",
+            "type": "t_address",
+            "src": "project:/contracts/PulsarRouter.sol:126"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "divisor",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarRouter.sol:128"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "BNB_PSR",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarRouter.sol:134"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "BNB_BUSD",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarRouter.sol:135"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "NOVA_SWAPS",
+            "type": "t_address",
+            "src": "project:/contracts/PulsarRouter.sol:141"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "nextProductId",
+            "type": "t_uint256",
+            "src": "project:/contracts/PulsarRouter.sol:142"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "products",
+            "type": "t_mapping(t_uint256,t_struct(Product)15546_storage)",
+            "src": "project:/contracts/PulsarRouter.sol:144"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "ratios",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "src": "project:/contracts/PulsarRouter.sol:157"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "novaWallets",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_address))",
+            "src": "project:/contracts/PulsarRouter.sol:170"
+          },
+          {
+            "contract": "PulsarRouter",
+            "label": "subscriptions",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Subscription)15553_storage))",
+            "src": "project:/contracts/PulsarRouter.sol:216"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_uint256,t_struct(Product)15546_storage)": {
+            "label": "mapping(uint256 => struct PulsarRouter.Product)"
+          },
+          "t_struct(Product)15546_storage": {
+            "label": "struct PulsarRouter.Product",
+            "members": [
+              {
+                "label": "cost",
+                "type": "t_uint256"
+              },
+              {
+                "label": "frequency",
+                "type": "t_uint256"
+              },
+              {
+                "label": "discount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "points",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_address))": {
+            "label": "mapping(address => mapping(uint256 => address))"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Subscription)15553_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct PulsarRouter.Subscription))"
+          },
+          "t_mapping(t_uint256,t_struct(Subscription)15553_storage)": {
+            "label": "mapping(uint256 => struct PulsarRouter.Subscription)"
+          },
+          "t_struct(Subscription)15553_storage": {
+            "label": "struct PulsarRouter.Subscription",
+            "members": [
+              {
+                "label": "subscriber",
+                "type": "t_address"
+              },
+              {
+                "label": "start",
+                "type": "t_uint256"
+              },
+              {
+                "label": "nextPayment",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_struct(Rank)14570_storage)": {
+            "label": "mapping(uint256 => struct PulsarReferral.Rank)"
+          },
+          "t_struct(Rank)14570_storage": {
+            "label": "struct PulsarReferral.Rank",
+            "members": [
+              {
+                "label": "MinPoints",
+                "type": "t_uint256"
+              },
+              {
+                "label": "Reward",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_struct(Profile)14584_storage)": {
+            "label": "mapping(address => struct PulsarReferral.Profile)"
+          },
+          "t_struct(Profile)14584_storage": {
+            "label": "struct PulsarReferral.Profile",
+            "members": [
+              {
+                "label": "Creator",
+                "type": "t_address"
+              },
+              {
+                "label": "CodeString",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "CodeHash",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Points)14577_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct PulsarReferral.Points))"
+          },
+          "t_mapping(t_uint256,t_struct(Points)14577_storage)": {
+            "label": "mapping(uint256 => struct PulsarReferral.Points)"
+          },
+          "t_struct(Points)14577_storage": {
+            "label": "struct PulsarReferral.Points",
+            "members": [
+              {
+                "label": "PV",
+                "type": "t_uint256"
+              },
+              {
+                "label": "BV",
+                "type": "t_uint256"
+              },
+              {
+                "label": "Collected",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_bool))": {
+            "label": "mapping(address => mapping(uint256 => bool))"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_mapping(t_bytes32,t_address)": {
+            "label": "mapping(bytes32 => address)"
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_bytes32))": {
+            "label": "mapping(address => mapping(uint256 => bytes32))"
+          },
+          "t_mapping(t_uint256,t_bytes32)": {
+            "label": "mapping(uint256 => bytes32)"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_array(t_address)dyn_storage))": {
+            "label": "mapping(address => mapping(uint256 => address[]))"
+          },
+          "t_mapping(t_uint256,t_array(t_address)dyn_storage)": {
+            "label": "mapping(uint256 => address[])"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    }
+  }
+}
