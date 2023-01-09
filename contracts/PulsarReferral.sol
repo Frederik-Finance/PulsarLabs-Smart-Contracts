@@ -21,6 +21,7 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
 
     uint256 public maxRankId;
     uint public period;
+    uint public multiplier;
 
  
     mapping(uint256 => Rank) public rank;
@@ -49,17 +50,16 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
         period ++;
     }
 
+    function updateMultiplier(uint _multiplier) public onlyOwner {
+        require(_multiplier >= 1);
+        multiplier = _multiplier;
+    }
+
    
 
-
-   // function msgValueToPV(msgvalue) public view returns (uint performance_points) {
-    //     // convert first 
-    //     // converted / 3
-    // }
-
-
    function incrementP(uint256 value, address sender) public {
-    uint ps = value * 3;
+    require(msg.sender == address(this));
+    uint ps = value * multiplier;
     bytes32 rCodeInUse = referralInUse[sender][period];
 
     // to whom does the code belong;

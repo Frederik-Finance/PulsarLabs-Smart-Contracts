@@ -26,18 +26,32 @@ contract PulsarRouter is Initializable,
 
   // Prices of each subscription plan
   mapping(uint256 => SubscriptionPlan) public plans;
-  IERC20 public StableCoin = IERC20(0x4Fabb145d64652a948d72533023f6E7A623C7C53);
+  IERC20 public StableCoin;
 
   // Address of the NOVA contract
   NovaWallet public NOVA;
-  PulsarPerformanceToken public pulsarPerformanceToken ;
+  PulsarReferralCoin public pulsarReferralCoin ;
 
     function initialize() public initializer {
         __Ownable_init();
         __ReentrancyGuard_init();
-        pulsarPerformanceToken = new PulsarPerformanceToken();
-        NOVA = new NovaWallet();
+        //   pulsarReferralCoin = new PulsarReferralCoin();
+        // NOVA = new NovaWallet();
+        StableCoin = IERC20(0x4Fabb145d64652a948d72533023f6E7A623C7C53);
+        // init PulsarReferralVariables
+        multiplier = 3;
+        // init quoter variables
+         BUSD = 0x4Fabb145d64652a948d72533023f6E7A623C7C53;
+         WBNB =0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+        router = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
+
     }
+
+
+    // function initContracts() public onlyOwner {
+    //   pulsarReferralCoin = new PulsarReferralCoin();
+    //   NOVA = new NovaWallet();
+    // }
 
   // Initialize a subscription plan
   function updatePlan(
@@ -64,7 +78,7 @@ contract PulsarRouter is Initializable,
 function mintNovaBnB(address _owner,
   uint256 _subscriptionId,
   string memory _uri) public payable {
-    uint payment = plans[_subscriptionId].price
+    uint payment = plans[_subscriptionId].price;
 
   if (referralInUse[msg.sender][period] != bytes32(0)) {
       payment = payment.sub(payment.mul(plans[_subscriptionId].discount).div(100));
@@ -100,7 +114,7 @@ function mintNova(
   uint256 _subscriptionId,
   string memory _uri
 ) public {
-  uint payment = plans[_subscriptionId].price
+  uint payment = plans[_subscriptionId].price;
 
   // Ensure that the sender has enough StableCoin balance to pay for the subscription plan
   require(StableCoin.balanceOf(msg.sender) >= payment, "Insufficient StableCoin balance");
