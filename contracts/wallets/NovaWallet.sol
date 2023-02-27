@@ -6,182 +6,205 @@ import  "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../trading/Stealth.sol";
 
 
 // this NFT contract will be deployed by the pulsaRouter which will be the 'owner' of it
-contract NovaTrading is Ownable, ReentrancyGuard {
+contract NovaWallet is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
+
+    constructor(address _owner) {
+        transferOwnership(_owner);
+    }
     fallback() external payable {}
 
     receive() external payable {}
     address private constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-    mapping(address => bool) internal locktrading;
-    mapping(address => bool) initializer;
+    address private constant PCS_ROUTER = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
 
-// 108814
-function buyTokens(
-    address _recipient,
-    address _tokenIn,
-    address _target
-) public payable {
-    uint256 _amountIn = msg.value;
- // Create the path for the swap
-    address[] memory path;
-    if (_tokenIn == WBNB) {
-        path = new address[](2);
-        path[0] = _tokenIn;
-        path[1] = _target;
-    } else {
-        path = new address[](3);
-        path[0] = WBNB;
-        path[1] = _tokenIn;
-        path[2] = _target;
-    }
-    require(locktrading[_target] == false, 'locked');
+    // meta data 
+    uint expirationDate;
+    uint currentPlan;
+
+    // trading functions
+    mapping(address => bool) internal unlocktrading;
+    mapping(address => bool) init_account;
+    address public gasAccount;
+
+    event Outs(uint amount);
+
+
+// make the deadline fixed three blocks from now and make the deadline parameter the amount out min
+function swapExactETHForTokens(
+    uint amountOutMin,
+    address[] memory  path,
+    address to,
+    uint deadline
+) public payable can_trade {
+    address _target = path[path.length -1];
+    // should get the amount out min from the simulation
+    require(unlocktrading[_target] == true, 'locked');
     // Call the UniswapV2 Router to execute the swap
-    (bool success,) = address(0x10ED43C718714eb63d5aA57B78B54704E256024E).call{value: _amountIn}(
+    uint before_balance = IERC20(_target).balanceOf(address(this)); 
+
+    (bool success,  ) = address(PCS_ROUTER).call{value: amountOutMin}(
         abi.encodeWithSignature(
             "swapExactETHForTokensSupportingFeeOnTransferTokens(uint256,address[],address,uint256)",
-            _amountIn,
+            0,
             path,
-            address(this),
-            type(uint256).max
+            address(this), 
+            deadline
         )
     );
-    //109380
+
+    uint after_balance = IERC20(_target).balanceOf(address(this)); 
+
+    // uint[] outs = abi.decode(output, (uint256[]))
+    emit Outs(after_balance - before_balance);
+
+    
       if(success) {
-        locktrading[_target] = true;
+        unlocktrading[_target] = false;
     }
 }
 
-function unlock(address addr)public {
-    locktrading[addr] = false;
+
+// sell a percentrage of tokenBalance
+function sell_safe(
+  uint sell_percentage,
+  uint slippage,
+  address[] memory path,
+  address to,
+  uint deadline) public can_trade {
+    // the assets can only be transferred to either the owner or this wallet
+    if(to != address(this)) {
+        to = owner();
+    }
+    // this ensures that the tokens can only be converted to WBNB; 
+    require(path[path.length -1] == WBNB, "Output needs to be BNB");
+    uint token_balance = IERC20(path[0]).balanceOf(address(this)); 
+    uint wbnb_before = IERC20(WBNB).balanceOf(address(this)); 
+
+    
+    uint sell_amount = token_balance.mul(sell_percentage).div(100);
+    IERC20(path[path.length -1]).approve(PCS_ROUTER, sell_amount);
+
+    (bool S, ) = address(PCS_ROUTER).call(
+            abi.encodeWithSignature(
+                "swapExactTokensForETH(uint256,uint256,address[],address,uint256)",
+                sell_amount,
+                sell_amount.mul(slippage).div(100),
+                path,
+                to,
+                deadline
+                )
+        );
+
+    uint wbnb_after = IERC20(WBNB).balanceOf(address(this));
+    uint wbnb_diff = wbnb_after - wbnb_before;
+    emit Outs(wbnb_diff);    
 }
 
-    address gasAccount;
-    function _grantInitializerRole(address _address) internal {
-            initializer[gasAccount] = false;
-            initializer[_address] = true;
-            gasAccount = _address;
-        
+
+
+function swapTokens(
+    uint amountOutMin,
+    uint sell_percentage,
+    uint slippage,
+    address[] calldata path,
+    address to,
+    uint deadline,
+    bool checkBlacklist
+) public can_trade payable returns (uint) {
+   // the input amount needs to be approximately the same as the ouput amount you get
+    address target = path[path.length-1];
+    uint wbnb_before = address(this).balance;
+    uint token_before = IERC20(target).balanceOf(address(this)); 
+
+    swapExactETHForTokens(amountOutMin, path, to, deadline);
+    uint token_after = IERC20(target).balanceOf(address(this)); 
+
+    if(!checkBlacklist) {
+        return token_after - token_before;
     }
 
-    function _revokeInitializerRole(address[] memory _addresses)
-        internal
-    {
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            initializer[_addresses[i]] = false;
-        }
-    }
-   
+    // if blacklist check is activated
+    sell_safe(sell_percentage, slippage, reversePath(path), to, deadline);
+
+    // Calculate the amount of BNB received from sell_safe function
+    uint wbnb_after = address(this).balance;
+    uint wbnb_received = wbnb_before - wbnb_after;
+
+    return wbnb_received;
 }
 
 
-pragma solidity ^0.8.12;
-
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-
-
-contract NovaWallet is ERC721, ERC721URIStorage, Ownable, NovaTrading {
-    using Counters for Counters.Counter;
-    using Strings for *;
-
-    Counters.Counter private _tokenIdCounter;
-
-    // Add a mapping to store the owner of each token
-    mapping(address => uint) public _tokenIds;
-    mapping(uint256 => address) public _tokenOwners;
-    mapping(uint256 => uint256) public _subscriptionIds;
-    mapping(uint256 => uint256) public _expirationDates;
-    mapping(uint256 => mapping(address => uint256)) private _balances;
-
-
-
-    constructor() ERC721("NovaWallet", "NVA") {}
-        function safeMint(string memory uri, uint256 subscriptionId, uint256 expirationDate, address tokenOwner) public onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(tokenOwner, tokenId);
-        _setTokenURI(tokenId, uri);
-        // Set the owner of the token to the msg.sender and store the subscription ID and expiration date
-
-        _tokenOwners[tokenId] = tokenOwner;
-        _tokenIds[tokenOwner] = tokenId;
-        _subscriptionIds[tokenId] = subscriptionId;
-        _expirationDates[tokenId] = block.timestamp +  expirationDate;
-    }
-
-    // Add a modifier to check if the msg.sender is the owner of the token
-    modifier onlyTokenOwner(uint256 tokenId) {
-        require(_tokenOwners[tokenId] == msg.sender, "You are not the owner of this token.");
-        _;
-    }
-
-    // The following functions are overrides required by Solidity.
-
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-    }
-
-        function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        // Retrieve the subscription ID and expiration date for the token
-        uint256 subscriptionId = _subscriptionIds[tokenId];
-        uint256 expirationDate = _expirationDates[tokenId];
-
-        // Generate the URI using the subscription ID and expiration date
-        string memory uri = string.concat("https://example.com/nft/", tokenId.toString(), "/", subscriptionId.toString(), "/", expirationDate.toString());
-        // string memory uri = string.concat("https://example.com/nft/", "/");
-    }
-
+function unlock(address token) public onlyOwner {
+    unlocktrading[token] = true;
+}
 
 function withdrawTokens(
     address tokenContract,  // The address of the ERC20 contract
-    uint256 amount,
-    uint tokenId  // The amount of tokens to withdraw
-) public onlyTokenOwner(tokenId) {
-    // Ensure that the msg.sender is the owner of the token
-    require(_tokenOwners[tokenId] == msg.sender, "You are not the owner of this token.");
-    // Call the ERC20 contract to transfer the tokens from the contract to the owner
-    IERC20(tokenContract).transfer(msg.sender, amount);
+    uint256 amount
+) public can_trade {
+    IERC20(tokenContract).transfer(owner(), amount);
 }
 
- function withdrawBNB(uint amount, uint tokenId) public payable onlyTokenOwner(tokenId) {
-        require(address(this).balance > amount, "You tried to withdraw more than your current Balance");
-        (bool withdrawn, ) = address(_tokenOwners[tokenId]).call{
-            value: amount
-        }("");
-        require(withdrawn, "Error during withdrawal");
+function withdrawAllTokens(address tokenContract, uint amount) public can_trade {
+    require(IERC20(tokenContract).balanceOf(address(this)) >= amount, "The contract do not have enough tokens to transfer");
+    IERC20(tokenContract).transfer(owner(), amount);
+}
+
+function withdrawBNB(uint amount) public payable can_trade {
+    require(address(this).balance >= amount, "You tried to withdraw more than your current balance");
+    (bool withdrawn, ) = address(owner()).call{
+        value: amount
+    }("");
+    require(withdrawn, "Error during withdrawal");
+}
+
+
+
+    // onlyOwner
+    function grantInitRole(address _address) public  {
+            init_account[gasAccount] = false;
+            init_account[_address] = true;
+            gasAccount = _address;
     }
 
-    function grantInitializerRole(address gasAccount, uint tokenId) public onlyTokenOwner(tokenId) {
-        _grantInitializerRole(gasAccount);
+    function revokeInitRole(address[] memory _addresses)
+        public onlyOwner
+    {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            init_account[_addresses[i]] = false;
+        }
+    }
+   
+    function setExpirationDate(uint _expirationDate) public  {
+    require(owner() == tx.origin);
+    expirationDate = _expirationDate;
+}
+
+    function setCurrentPlan(uint _currentPlan) public  {
+    require(owner() == tx.origin);
+    currentPlan = _currentPlan;
+}
+
+modifier can_trade() {
+    require(init_account[msg.sender], "Only authorized accounts can trade, to protect the users funds");
+    _;
+}
+
+function reversePath(address[] memory input) internal pure returns (address[] memory) {
+    address[] memory result = new address[](input.length);
+
+    for (uint i = 0; i < input.length; i++) {
+        result[i] = input[input.length - i - 1];
     }
 
-    function revokeInitializerRole(address[] memory addresses, uint tokenId) public onlyTokenOwner(tokenId) {
-        _revokeInitializerRole(addresses);
-    }
-
-    
-function setSubscriptionId(uint256 tokenId, uint256 subscriptionId) public onlyOwner {
-  _subscriptionIds[tokenId] = subscriptionId;
+    return result;
 }
 
-function setExpirationDate(uint256 tokenId, uint256 expirationDate) public onlyOwner {
-  _expirationDates[tokenId] = expirationDate;
-}
-
-function getBalance(uint256 tokenId, address owner) public view onlyTokenOwner(tokenId) returns (uint) {
-  return _balances[tokenId][owner];
-}
 
 }

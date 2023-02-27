@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
 
+
 contract Quoter {
   using SafeMath for uint256;
 
@@ -15,18 +16,23 @@ function quote(uint256 amount) public returns (uint256 wbnb) {
 
 address[] memory path;
   path = new address[](2);
-  path[0] = WBNB;
-  path[1] = BUSD;
-  IUniswapV2Router02(router).getAmountsOut(amount ,path);
+  path[0] = BUSD;
+  path[1] = WBNB;
+  uint[] memory amountsOut = IUniswapV2Router02(router).getAmountsOut(amount.mul(10**18) ,path);
+
+  // wbnb = amountsOut[amountsOut.length -1];
+
 
 }
 
-function convertToBusd(uint amount) public payable {
+//convertEthToBUSD
+function convertToBusd(uint amount) public payable returns (uint[] memory) {
   address[] memory path;
   path = new address[](2);
   path[0] = WBNB;
   path[1] = BUSD;
-  IUniswapV2Router02(router).swapExactETHForTokens{value: msg.value}(amount ,path, address(this), type(uint).max);
+  uint[] memory amountsOut = IUniswapV2Router02(router).swapExactETHForTokens{value: msg.value}(amount ,path, address(this), type(uint).max);
+  return amountsOut;
 }
 
 

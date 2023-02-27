@@ -16,6 +16,8 @@ contract PulsarRouter is Initializable,
     PulsarReferral, Quoter
     {
 
+  event NovaCreated(address indexed buyer, address nova);
+
   using SafeMath for uint256;
 
   struct SubscriptionPlan {
@@ -26,23 +28,16 @@ contract PulsarRouter is Initializable,
 
   // Prices of each subscription plan
   mapping(uint256 => SubscriptionPlan) public plans;
-  IERC20 public StableCoin;
-
-  // Address of the NOVA contract
-  NovaWallet public NOVA;
-  PulsarReferralCoin public pulsarReferralCoin ;
+  mapping(address => address) internal subscriptions;
+  address public pulsarReferralCoin;
 
     function initialize() public initializer {
         __Ownable_init();
         __ReentrancyGuard_init();
-        //   pulsarReferralCoin = new PulsarReferralCoin();
-        // NOVA = new NovaWallet();
-        StableCoin = IERC20(0x4Fabb145d64652a948d72533023f6E7A623C7C53);
-        // init PulsarReferralVariables
         multiplier = 3;
         // init quoter variables
-         BUSD = 0x4Fabb145d64652a948d72533023f6E7A623C7C53;
-         WBNB =0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+         BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
+         WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
         router = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
 
     }
@@ -50,7 +45,6 @@ contract PulsarRouter is Initializable,
 
     // function initContracts() public onlyOwner {
     //   pulsarReferralCoin = new PulsarReferralCoin();
-    //   NOVA = new NovaWallet();
     // }
 
   // Initialize a subscription plan
@@ -59,7 +53,7 @@ contract PulsarRouter is Initializable,
     uint256 _price,
     uint256 _expirationDate,
     uint _discount
-  ) public {
+  ) public onlyOwner{
     plans[_subscriptionId] = SubscriptionPlan(_price, _expirationDate, _discount);
   }
 
@@ -69,16 +63,13 @@ contract PulsarRouter is Initializable,
   plans[_id] = (SubscriptionPlan)(0, 0, 0);
 }
 
-// the buy function will be more difficult
-// referralCode ? 
-// buy or upgrade ? 
-// pay with BUSD or BNB
 
-// on the front end call quote first;
-function mintNovaBnB(address _owner,
-  uint256 _subscriptionId,
-  string memory _uri) public payable {
+
+// event Log(uint should, uint got);
+function createNovaBNB(
+  uint256 _subscriptionId) public payable returns (address payable nova_address) {
     uint payment = plans[_subscriptionId].price;
+
 
   if (referralInUse[msg.sender][period] != bytes32(0)) {
       payment = payment.sub(payment.mul(plans[_subscriptionId].discount).div(100));
@@ -86,51 +77,60 @@ function mintNovaBnB(address _owner,
     }
 
   // perform the check for the funcion here
-  uint amountWbnb = quote(payment);
-  convertToBusd(amountWbnb);
+  uint amountWbnb = quote(payment.mul(10**18));
+  uint[] memory amountsOut = convertToBusd(amountWbnb);
+  require(amountsOut[amountsOut.length -1] > plans[_subscriptionId].price.mul(10**18), "The amount received is less than the expected amount required to create a NovaBNB. Please ensure you are sending enough funds to cover the subscription price.");
+  // emit Log(plans[_subscriptionId].price.mul(10**18), amountsOut[amountsOut.length -1]);
 
-  if(NOVA.balanceOf(msg.sender) == 0) {
-        NOVA.safeMint(_uri, _subscriptionId, plans[_subscriptionId].expirationDate, _owner); 
-    } else {
-      uint Id = NOVA._tokenIds(msg.sender);
-      require(NOVA._expirationDates(Id) < block.timestamp, "Plan not expired yet");
-      NOVA.setExpirationDate(Id, plans[_subscriptionId].expirationDate);
-      NOVA.setSubscriptionId(Id, _subscriptionId);
-    }
-
-    // if the user uses a referralCode then the increment p function needs to be called
- 
-
-  }
-
-
-
-  // if in referral program then increment him; 
   
 
-// here approve
-function mintNova(
-  address _owner,
-  uint256 _subscriptionId,
-  string memory _uri
-) public {
-  uint payment = plans[_subscriptionId].price;
+  if(subscriptions[msg.sender] == address(0)) {
+    nova_address =  payable(address(new NovaWallet(msg.sender)));
 
-  // Ensure that the sender has enough StableCoin balance to pay for the subscription plan
-  require(StableCoin.balanceOf(msg.sender) >= payment, "Insufficient StableCoin balance");
-  // Mint the NOVA
-  // Transfer the cost of the subscription plan from the sender's StableCoin balance
-  StableCoin.transferFrom(msg.sender, address(this), payment);
+    subscriptions[msg.sender] = nova_address;
+    NovaWallet(nova_address).setExpirationDate(plans[_subscriptionId].expirationDate);
+    NovaWallet(nova_address).setCurrentPlan(_subscriptionId);
+    emit NovaCreated(msg.sender, nova_address);
+    return nova_address;
+  }
 
-  NOVA.safeMint(_uri, _subscriptionId, plans[_subscriptionId].expirationDate, _owner); 
+    else {
+    // Get the address of the existing NovaWallet contract
+    nova_address = payable(subscriptions[msg.sender]);
+    // Set the expiration date and current plan for the existing NovaWallet contract
+    NovaWallet(nova_address).setExpirationDate(plans[_subscriptionId].expirationDate);
+    NovaWallet(nova_address).setCurrentPlan(_subscriptionId);
+      emit NovaCreated(msg.sender, nova_address);
+return nova_address;
+
+}
 }
 
 
 
-function changeStableCoin(address _StableCoin) public onlyOwner {
-  StableCoin = IERC20(_StableCoin);
+function setReferralCoin(address _referralCoin) public onlyOwner {
+    require(_referralCoin != address(0), "Invalid address");
+    pulsarReferralCoin = _referralCoin;
+}
+
+  
+  function withdrawRewards() public nonReentrant {
+    require(withdrawn[msg.sender][period] == false, "Rewards already withdrawn for this period");
+    uint rewards = showRewards(msg.sender, period);
+    require(rewards > 0, "No rewards available for withdrawal");
+
+    // Transfer rewards to the user
+    PulsarReferralCoin(pulsarReferralCoin).transfer(msg.sender, rewards);
+
+    // Mark rewards as withdrawn for this period
+    withdrawn[msg.sender][period] = true;
 
 }
+
+
+// Withdrawing the referralRewards
+
+
 
 }
 

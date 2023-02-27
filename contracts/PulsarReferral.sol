@@ -7,17 +7,12 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "./TreeStructure.sol";
 
 contract PulsarReferral is OwnableUpgradeable, TreeStructure {
-   
+
     struct Rank {
         uint256 MinPoints;
         uint256 Reward;
     }
 
-    struct Profile {
-        address Creator; // User
-        string CodeString;
-        bytes32 CodeHash;
-    }
 
     uint256 public maxRankId;
     uint public period;
@@ -25,7 +20,6 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
 
  
     mapping(uint256 => Rank) public rank;
-    mapping(address => Profile) public profiles;
     mapping(address => mapping(uint => bool)) internal withdrawn;
 
     mapping(bytes32 => address) internal referralCode;
@@ -46,7 +40,7 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
     }
 
  
-    function incrementPeriod(uint _period) public onlyOwner {
+    function incrementPeriod() public onlyOwner {
         period ++;
     }
 
@@ -57,7 +51,8 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
 
    
 
-   function incrementP(uint256 value, address sender) public {
+
+   function incrementP(uint256 value, address sender) internal {
     require(msg.sender == address(this));
     uint ps = value * multiplier;
     bytes32 rCodeInUse = referralInUse[sender][period];
@@ -73,7 +68,6 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
         // create new node
         addChildNode(rCodeOwner, period, ps, sender);
     }
-
     }
 
     function getRankReward(uint256 pv) public view returns (uint256 r) {
@@ -86,43 +80,41 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
         }
     }
 
-    
-function updateRanks(uint rankId, uint _minPoints, uint _reward) public  onlyOwner{
-    rank[rankId] = Rank({ MinPoints: _minPoints, Reward: _reward });
-    if (rankId + 1 >= maxRankId) {
-        maxRankId = rankId + 1;
-        rank[maxRankId] = Rank({
-            MinPoints: type(uint256).max,
-            Reward: uint256(0)
-        });
+
+    function updateRanks(uint rankId, uint _minPoints, uint _reward) public  onlyOwner{
+        rank[rankId] = Rank({ MinPoints: _minPoints, Reward: _reward });
+        if (rankId + 1 >= maxRankId) {
+            maxRankId = rankId + 1;
+            rank[maxRankId] = Rank({
+                MinPoints: type(uint256).max,
+                Reward: uint256(0)
+            });
+        }
     }
-}
 
 
 
-function showRewards(address sender, uint _period) public view returns (uint rewardEligible) {
-    uint p;
-    if (_period != period) {
-        p = _period;
-    } else {
-        p = period;
-    }
-    uint256 totalPV = traverseTree(sender, p);
-    uint _rankReward = getRankReward(totalPV);
-    rewardEligible = _rankReward * totalPV; 
-}
+    function showRewards(address sender, uint _period) public view returns (uint rewardEligible) {
+            uint p;
+            if (_period != period) {
+                p = _period;
+            } else {
+                p = period;
+            }
+            uint256 totalPV = traverseTree(sender, p);
+            uint _rankReward = getRankReward(totalPV);
+            rewardEligible = _rankReward * totalPV; 
+        }
 
-function showRewardsStringCode(string memory code, uint _period) public view returns (uint rewardEligible) {
-    (,address rootNode )= showCode(code);
-    rewardEligible = showRewards(rootNode, _period);
-    
-}
-
+    function showRewardsStringCode(string memory code, uint _period) public view returns (uint rewardEligible) {
+            (,address rootNode )= showCode(code);
+            rewardEligible = showRewards(rootNode, _period);
+            
+        }
 
  
     function setReferral(string memory _referralCode) public {
-    // require(referralInUse[msg.sender][period] == bytes32(0));
-
+        require(referralInUse[msg.sender][period] == bytes32(0));
         (bytes32 rawRef, address creator) = showCode(_referralCode);
         referralInUse[msg.sender][period] = rawRef;
 
@@ -138,27 +130,26 @@ function showRewardsStringCode(string memory code, uint _period) public view ret
         creator = referralCode[rawRef];
     }
 
-    /*
-    * @idea charge a fee for code creation;
-    */
+
     function generateReferralCode(string memory _referralCode)
-        public payable
+        public
         returns (bytes32 rCode)
     {
-        Profile memory profile;
    
         require(msg.sender != address(0), "Zero address");
         rCode = keccak256(abi.encodePacked(_referralCode));
         require(
             !referralCodeExists[rCode],
-"Sorry, this referral code has already been claimed by another user. Please try using a different referral code.");
-
-        profiles[msg.sender] = Profile({Creator: msg.sender, CodeString: _referralCode, CodeHash: rCode});
+        "Sorry, this referral code has already been claimed by another user. Please try using a different referral code.");
         referralCodeExists[rCode] = true;
         referralCode[rCode] = msg.sender;
 
-    }    
-  
+        return rCode;
+
+    }   
+
+
+
 }
 
 

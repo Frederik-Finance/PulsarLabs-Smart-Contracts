@@ -3,7 +3,6 @@ pragma solidity 0.8.12;
 
 contract TreeStructure {
 
-
 mapping(address => mapping(uint => TreeNode)) internal tree;
 
 
@@ -43,6 +42,7 @@ function sumChildrenValues(address root, uint _period) public view returns (uint
     return totalValue;
 }
 
+
 function countChildren(address parent, uint period) public view returns (uint count) {
     TreeNode storage parentNode = tree[parent][period];
 
@@ -58,6 +58,7 @@ function countChildren(address parent, uint period) public view returns (uint co
     }
     return count;
 }
+
 
 function nodeExists(address node, uint period) public view returns (bool) {
     return tree[node][period].value != 0;
@@ -93,6 +94,7 @@ function traverseTree(address root, uint _period) public view returns (uint256 t
     }
     return totalValue;
 }
+
 
 function hasMorePointsThanParent(address parent, address child, uint period) public view returns (bool) {
     // Retrieve the parent and child nodes from the tree mapping
