@@ -45,36 +45,18 @@ function swapExactETHForTokens(
     address[] memory  path,
     address to,
     uint deadline
-) public payable canTrade  validPath(path){ 
-    address _target = path[path.length -1];
-    // should get the amount out min from the simulation
-    // Call the UniswapV2 Router to execute the swap
-    uint before_balance = IERC20(_target).balanceOf(address(this));
-
-    // Nova is only for ICOs
-    // if(before_balance > 1) {
-    //     revert('Token balance needs to be smaller than 1 before trading');
-    // } 
+) public payable canTrade cooldown validPath(path){ 
 
     (bool success,  ) = address(PCS_ROUTER).call{value: amountOutMin}(
         abi.encodeWithSignature(
             "swapExactETHForTokensSupportingFeeOnTransferTokens(uint256,address[],address,uint256)",
-            0, // deadline here; is what comes back from the simulation
+            0, // deadline here; is what comes back from the simulation,
             path,
             address(this), 
             type(uint).max
         )
     );
-
-    uint after_balance = IERC20(_target).balanceOf(address(this)); 
-
-    // uint[] outs = abi.decode(output, (uint256[]))
-    emit Outs(after_balance - before_balance);
-
-    
-    //   if(success) {
-    //     pathApproved[_target] = false;
-    // }
+    require(success);
 }
 
 
@@ -90,7 +72,6 @@ function sell_safe(
         to = owner();
     }
     // this ensures that the tokens can only be converted to WBNB; 
-
     uint token_balance = IERC20(path[0]).balanceOf(address(this)); 
     uint wbnb_before = IERC20(WBNB).balanceOf(address(this)); 
 
@@ -213,12 +194,12 @@ modifier canTrade() {
     _;
 }
 
+// expenisive modifier, keeps the contract from executing a transaction multiple times
 modifier cooldown() {
-    require(block.number - lastTriggeredBlock[msg.sender] >= 5, "Function can only be called once every three blocks");
+    require(block.number - lastTriggeredBlock[msg.sender] >= 3, "Function can only be called once every three blocks");
     _;
     lastTriggeredBlock[msg.sender] = block.number;
 }
-
 
 function hashPath(address[] memory path) internal pure returns (bytes32) {
     return keccak256(abi.encode(path));
@@ -236,8 +217,6 @@ modifier validPath(address[] memory path) {
     require(pathApproved[pathHash], "Path not approved");
     _;
 }
-
-
 
 
 }
