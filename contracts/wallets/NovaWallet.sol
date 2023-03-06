@@ -33,8 +33,7 @@ contract NovaWallet is Ownable, ReentrancyGuard {
 
     address public gasAccount;
     
-    event Outs(uint amount);
-    event AmountOut(uint amount); // buy, sell
+    event AmountOut(uint buy, uint sell); // buy, sell
 
 
 // validPath(path)
@@ -50,7 +49,7 @@ function swapExactETHForTokens(
     (bool success,  ) = address(PCS_ROUTER).call{value: amountOutMin}(
         abi.encodeWithSignature(
             "swapExactETHForTokensSupportingFeeOnTransferTokens(uint256,address[],address,uint256)",
-            0, // deadline here; is what comes back from the simulation,
+            deadline, // deadline here; is what comes back from the simulation,
             path,
             address(this), 
             type(uint).max
@@ -93,7 +92,6 @@ function sell_safe(
 
     uint wbnb_after = IERC20(WBNB).balanceOf(address(this));
     uint wbnb_diff = wbnb_after - wbnb_before;
-    emit Outs(wbnb_diff);    
 }
 
 
@@ -106,7 +104,7 @@ function swapTokens(
     address to,
     uint deadline,
     bool checkBlacklist
-) public canTrade payable returns (uint) { // also set the validPath
+) public canTrade payable returns (uint, uint) { // also set the validPath
    // the input amount needs to be approximately the same as the ouput amount you get
     address target = path[path.length-1];
     uint wbnb_before = address(this).balance;
@@ -114,11 +112,12 @@ function swapTokens(
 
     swapExactETHForTokens(amountOutMin, path, to, deadline);
     uint token_after = IERC20(target).balanceOf(address(this)); 
+    uint buyAmount = token_after - token_before;
+
 
     if(!checkBlacklist) {
-        uint out = token_after - token_before;
-        emit AmountOut(out);
-        return out;
+        emit AmountOut(buyAmount, 0);
+        return (buyAmount, 0);
     }
 
     // if blacklist check is activated
@@ -128,8 +127,8 @@ function swapTokens(
     uint wbnb_after = address(this).balance;
     uint wbnb_received = wbnb_before - wbnb_after;
 
-    emit AmountOut(wbnb_received);
-    return wbnb_received;
+    emit AmountOut(buyAmount, wbnb_received);
+    return (buyAmount,wbnb_received);
 }
 
 

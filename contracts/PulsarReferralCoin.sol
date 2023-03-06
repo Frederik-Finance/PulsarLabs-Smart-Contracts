@@ -11,7 +11,7 @@ contract PulsarReferralCoin is ERC20, ERC20Burnable, AccessControl, ERC20Permit,
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     constructor()
-        ERC20("PulsarReferralCoin", "PRC")
+        ERC20("PulsarReferralCoin", "PR")
         ERC20Permit("PulsarReferralCoin")
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
