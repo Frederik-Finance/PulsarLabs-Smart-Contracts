@@ -49,7 +49,6 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
         multiplier = _multiplier;
     }
 
-   
 
 
    function incrementP(uint256 value, address sender) internal {
@@ -135,7 +134,6 @@ contract PulsarReferral is OwnableUpgradeable, TreeStructure {
         public
         returns (bytes32 rCode)
     {
-   
         require(msg.sender != address(0), "Zero address");
         rCode = keccak256(abi.encodePacked(_referralCode));
         require(

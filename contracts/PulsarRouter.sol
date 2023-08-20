@@ -82,17 +82,20 @@ function createNovaBNB(
   uint256 _subscriptionId) public payable returns (address payable nova_address) {
     uint payment = plans[_subscriptionId].price;
 
-
+  // Check if user is using a referral code, and apply discount if applicable
   if (referralInUse[msg.sender][period] != bytes32(0)) {
       payment = payment.sub(payment.mul(plans[_subscriptionId].discount).div(100));
       incrementP(payment, msg.sender);
-    }
+  }
 
-  // perform the check for the funcion here
+  // Convert payment to BUSD using PancakeSwap router
   uint amountWbnb = quote(payment.mul(10**18));
   uint[] memory amountsOut = convertToBusd(amountWbnb);
+  
+  // Verify that the amount of BUSD received is sufficient to cover the subscription price
   require(amountsOut[amountsOut.length -1] > plans[_subscriptionId].price.mul(10**18), "The amount received is less than the expected amount required to create a NovaBNB. Please ensure you are sending enough funds to cover the subscription price.");
 
+  // Create a new NovaWallet contract for the user, or update an existing one if it already exists
   if(subscriptions[msg.sender] == address(0)) {
     nova_address =  payable(address(new NovaWallet(msg.sender)));
     subscriptions[msg.sender] = nova_address;
@@ -101,16 +104,16 @@ function createNovaBNB(
     emit NovaCreated(msg.sender, nova_address);
     return nova_address;
   }
-    else {
+  else {
     // Get the address of the existing NovaWallet contract
     nova_address = payable(subscriptions[msg.sender]);
     NovaWallet(nova_address).setExpirationDate(plans[_subscriptionId].expirationDate);
     NovaWallet(nova_address).setCurrentPlan(_subscriptionId);
     emit NovaCreated(msg.sender, nova_address);
     return nova_address;
+  }
+}
 
-}
-}
 
   function withdrawRewards() public nonReentrant {
     require(withdrawn[msg.sender][period] == false, "Rewards already withdrawn for this period");
@@ -136,6 +139,8 @@ function withdrawToken(address _tokenAddress, uint256 amount) public onlyOwner {
     require(tokenBalance >= amount, "Insufficient token balance");
     require(IERC20(_tokenAddress).transfer(owner(), amount), "Transfer failed");
 }
+
+
 
 
 }

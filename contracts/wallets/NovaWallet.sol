@@ -14,8 +14,9 @@ contract NovaWallet is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
     constructor(address _owner) {
-        transferOwnership(_owner);
+        // transferOwnership(_owner);
     }
+    
     fallback() external payable {}
 
     receive() external payable {}
@@ -28,8 +29,9 @@ contract NovaWallet is Ownable, ReentrancyGuard {
 
     // trading functions
     mapping(address => uint) private lastTriggeredBlock;
-    // mapping(address[] => bool) internal pathApproved; // can not be an array
     mapping(address => bool) initAccount;
+    mapping(bytes32 => bool) internal pathApproved;
+
 
     address public gasAccount;
     
@@ -44,7 +46,7 @@ function swapExactETHForTokens(
     address[] memory  path,
     address to,
     uint deadline
-) public payable canTrade cooldown validPath(path){ 
+) public canTrade cooldown validPath(path){ 
 
     (bool success,  ) = address(PCS_ROUTER).call{value: amountOutMin}(
         abi.encodeWithSignature(
@@ -55,29 +57,31 @@ function swapExactETHForTokens(
             type(uint).max
         )
     );
-    require(success);
+    // require(success, "swap failed");
 }
 
 
 // sell a percentrage of tokenBalance
-function sell_safe(
-  uint sell_percentage,
+function sellSafe(
+  uint sellPercentage,
   uint slippage,
   address[] memory path,
-  address to,
-  uint deadline) public canTrade validPath(reversePath(path)) {
+  address to) public canTrade validPath(reversePath(path)) {
     // the assets can only be transferred to either the owner or this wallet
     if(to != address(this)) {
         to = owner();
     }
     // this ensures that the tokens can only be converted to WBNB; 
-    uint token_balance = IERC20(path[0]).balanceOf(address(this)); 
+    uint tokenBalance = IERC20(path[0]).balanceOf(address(this)); 
     uint wbnb_before = IERC20(WBNB).balanceOf(address(this)); 
 
     
-    uint sell_amount = token_balance.mul(sell_percentage).div(100);
+    uint sell_amount = tokenBalance.mul(sellPercentage).div(100);
     IERC20(path[0]).approve(PCS_ROUTER, sell_amount);
 
+
+    // bears the risk to get front-run
+    // definetly also imolement the sell check there 
     (bool S, ) = address(PCS_ROUTER).call(
             abi.encodeWithSignature(
                 "swapExactTokensForETH(uint256,uint256,address[],address,uint256)",
@@ -85,20 +89,20 @@ function sell_safe(
                 0, //sell_amount.mul(slippage).div(100),
                 path,
                 to,
-                deadline
+                type(uint).max
                 )
         );
-    require(S, "swap failed");
+    // require(S, "swap failed");
 
-    uint wbnb_after = IERC20(WBNB).balanceOf(address(this));
-    uint wbnb_diff = wbnb_after - wbnb_before;
+    // uint wbnb_after = IERC20(WBNB).balanceOf(address(this));
+    // uint wbnb_diff = wbnb_after - wbnb_before;
 }
 
 
 
 function swapTokens(
     uint amountOutMin,
-    uint sell_percentage,
+    uint sellPercentage,
     uint slippage,
     address[] calldata path,
     address to,
@@ -107,7 +111,7 @@ function swapTokens(
 ) public canTrade payable returns (uint, uint) { // also set the validPath
    // the input amount needs to be approximately the same as the ouput amount you get
     address target = path[path.length-1];
-    uint wbnb_before = address(this).balance;
+    uint bnb_before = address(this).balance;
     uint token_before = IERC20(target).balanceOf(address(this)); 
 
     swapExactETHForTokens(amountOutMin, path, to, deadline);
@@ -121,25 +125,20 @@ function swapTokens(
     }
 
     // if blacklist check is activated
-    sell_safe(sell_percentage, slippage, reversePath(path), to, deadline);
+    sellSafe(sellPercentage, slippage, reversePath(path), to);
 
-    // Calculate the amount of BNB received from sell_safe function
-    uint wbnb_after = address(this).balance;
-    uint wbnb_received = wbnb_before - wbnb_after;
+    // Calculate the amount of BNB received from sellSafe function
+    uint bnb_after = address(this).balance;
+    uint bnb_received = bnb_before - bnb_after;
 
-    emit AmountOut(buyAmount, wbnb_received);
-    return (buyAmount,wbnb_received);
+    emit AmountOut(buyAmount, bnb_received);
+    return (buyAmount,bnb_received);
 }
-
 
 function withdrawTokens(
     address tokenContract,  // The address of the ERC20 contract
     uint256 amount
 ) public canTrade {
-    IERC20(tokenContract).transfer(owner(), amount);
-}
-
-function withdrawAllTokens(address tokenContract, uint amount) public canTrade {
     require(IERC20(tokenContract).balanceOf(address(this)) >= amount, "The contract do not have enough tokens to transfer");
     IERC20(tokenContract).transfer(owner(), amount);
 }
@@ -153,8 +152,18 @@ function withdrawBNB(uint amount) public payable {
     require(withdrawn, "Error during withdrawal");
 }
 
+function hashPath(address[] memory path) internal pure returns (bytes32) {
+    return keccak256(abi.encode(path));
+}
+
+function unlockPath(address[] memory path) public onlyOwner {
+    bytes32 pathHash = hashPath(path);
+    pathApproved[pathHash] = true;
+}
+
+
     // onlyOwner
-    function grantInitRole(address _address) public  {
+    function grantInitRole(address _address) public onlyOwner  {
             initAccount[gasAccount] = false;
             initAccount[_address] = true;
             gasAccount = _address;
@@ -200,22 +209,14 @@ modifier cooldown() {
     lastTriggeredBlock[msg.sender] = block.number;
 }
 
-function hashPath(address[] memory path) internal pure returns (bytes32) {
-    return keccak256(abi.encode(path));
-}
-
-function unlockPath(address[] memory path) public onlyOwner {
-    bytes32 pathHash = hashPath(path);
-    pathApproved[pathHash] = true;
-}
-
-mapping(bytes32 => bool) internal pathApproved;
-
 modifier validPath(address[] memory path) {
     bytes32 pathHash = hashPath(path);
     require(pathApproved[pathHash], "Path not approved");
     _;
 }
 
+function deleteContract() public onlyOwner {
+    selfdestruct(payable(owner()));
+}
 
 }
