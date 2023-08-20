@@ -3,3 +3,5 @@ build/
 package-lock.json
 .DS_Store
 truffle-config.js
+./truffle-config.js
+
